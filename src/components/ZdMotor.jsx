@@ -90,9 +90,6 @@ const ZdMotor = ({ ros, nodeId}) => {
           <Button variant="outline-secondary" onClick={() => sendCanReq(0x700+nodeId, 8, [0x06, 0x20, 0x00, 0x0, 0x05, 0, 0, 0])}>
             Disable
           </Button>
-          <Button variant="outline-secondary" onClick={() => sendCanReq(0x700+nodeId, 8, [0x06, 0x20, 0x01, 0x0, 0x0, 0, 0, 0])}>
-            RPM
-          </Button>
         </Card.Text>
       </Card.Body>
     </Card>

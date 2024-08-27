@@ -19,15 +19,19 @@ function App() {
       {ros &&
         <>
         <Row>
-          <KincoMotor ros={ros} nodeId={1} />
+          <KincoMotor ros={ros} namespace={"rotation"} nodeId={1} />
         </Row>
 
         <Row>
-          <KincoMotor ros={ros} nodeId={2} />
+          <KincoMotor ros={ros} namespace={"expansion"} nodeId={2} />
         </Row>
 
         <Row>
-          <ZdMotor ros={ros} nodeId={4} />
+          <KincoMotor ros={ros} namespace={"push_pull"} nodeId={3} />
+        </Row>
+
+        <Row>
+          <ZdMotor ros={ros} namespace={"rolling"} nodeId={4} />
         </Row>
         </>
       }

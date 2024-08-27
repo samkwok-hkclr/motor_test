@@ -4,8 +4,11 @@ import ROSLIB from 'roslib';
 import { Button, Form } from 'react-bootstrap';
 import Card from 'react-bootstrap/Card';
 
-const KincoMotor = ({ ros, nodeId}) => {
+const KincoMotor = ({ ros, namespace, nodeId}) => {
   const [CanReqPublisher, setCanReqPublisher] = useState(null);
+  const [ModeReqPublisher, setModeReqPublisher] = useState(null);
+  const [SpeedReqPublisher, setSpeedReqPublisher] = useState(null);
+  const [ControlwordReqPublisher, setControlwordReqPublisher] = useState(null);
 
   useEffect(() => {
     if (!ros) {
@@ -25,6 +28,87 @@ const KincoMotor = ({ ros, nodeId}) => {
       setCanReqPublisher(null);
     };
   }, [ros]);
+
+  useEffect(() => {
+    if (!ros) {
+      return;
+    }
+
+    const modeReq = new ROSLIB.Topic({
+      ros: ros,
+      name: namespace + '/mode_req',
+      messageType: 'std_msgs/msg/UInt16',
+    });
+
+    setModeReqPublisher(modeReq);
+
+    return () => {
+      modeReq.unadvertise();
+      setModeReqPublisher(null);
+    };
+  }, [ros]);
+
+  useEffect(() => {
+    if (!ros) {
+      return;
+    }
+
+    const speedReq = new ROSLIB.Topic({
+      ros: ros,
+      name: namespace + '/speed_req',
+      messageType: 'std_msgs/msg/UInt16',
+    });
+
+    setSpeedReqPublisher(speedReq);
+
+    return () => {
+      speedReq.unadvertise();
+      setSpeedReqPublisher(null);
+    };
+  }, [ros]);
+
+  useEffect(() => {
+    if (!ros) {
+      return;
+    }
+
+    const controlwordReq = new ROSLIB.Topic({
+      ros: ros,
+      name: namespace + '/controlword_req',
+      messageType: 'std_msgs/msg/UInt16',
+    });
+
+    setControlwordReqPublisher(controlwordReq);
+
+    return () => {
+      controlwordReq.unadvertise();
+      setControlwordReqPublisher(null);
+    };
+  }, [ros]);
+
+  const sendModeReq = (mode) => {
+    const msg = new ROSLIB.Message({
+      data: mode
+    });
+
+    ModeReqPublisher.publish(msg);
+  };
+
+  const sendSpeedReq = (speed) => {
+    const msg = new ROSLIB.Message({
+      data: speed
+    });
+
+    SpeedReqPublisher.publish(msg);
+  };
+
+  const sendControlwordReq = (controlword) => {
+    const msg = new ROSLIB.Message({
+      data: controlword
+    });
+
+    ControlwordReqPublisher.publish(msg);
+  };
 
   const convertRpm2Dec = (rpm) => {
     const dec_10 = Math.floor(512 * rpm * 10000 / 1875);
@@ -59,7 +143,7 @@ const KincoMotor = ({ ros, nodeId}) => {
 
   const handleVelSliderChange = (event) => {
     setVelSliderValue(event.target.value);
-    handleRpmChange(velSliderValue);
+    sendSpeedReq(parseInt(event.target.value));
   };
 
   const handleRpmChange = () => {
@@ -78,28 +162,28 @@ const KincoMotor = ({ ros, nodeId}) => {
             <Form.Label>Velocity Control</Form.Label>
             <Form.Control type="range" min="-1" max="3000" step="10" value={velSliderValue} onChange={handleVelSliderChange} />
           </Form.Group>
-          <Button variant="outline-secondary" onClick={() => sendCanReq(0x600+nodeId, 8, [0x2B, 0x17, 0x10, 0x0, 0xE8, 0x03, 0x0, 0x0])}>
+          {/* <Button variant="outline-secondary" onClick={() => sendCanReq(0x600+nodeId, 8, [0x2B, 0x17, 0x10, 0x0, 0xE8, 0x03, 0x0, 0x0])}>
             Heartbeat
-          </Button>
-          <Button variant="outline-secondary" onClick={() => sendCanReq(0x0, 2, [0x81, 0x01, 0, 0, 0, 0, 0, 0])}>
+          </Button> */}
+          <Button variant="outline-secondary" onClick={() => sendCanReq(0x0, 2, [0x81, nodeId, 0, 0, 0, 0, 0, 0])}>
             Reset
           </Button>
           <Button variant="outline-secondary" onClick={() => sendCanReq(0x0, 8, [0x01, nodeId, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0])}>
             Operational Mode
           </Button>
-          <Button variant="outline-secondary" onClick={() => sendCanReq(0x600+nodeId, 8, [0x2F, 0x60, 0x60, 0x0, 0x03, 0x0, 0x0, 0x0])}>
-            Enable Velocity Control
+          <Button variant="outline-secondary" onClick={() => sendModeReq(3)}>
+            Set Velocity Mode
           </Button>
           {/* <Button variant="outline-secondary" onClick={() => handleRpmClick()}>
             Set RPM
           </Button> */}
-          <Button variant="outline-secondary" onClick={() => sendCanReq(0x600+nodeId, 8, [0x2B, 0x40, 0x60, 0x0, 0x0F, 0x0, 0x0, 0x0])}>
+          <Button variant="outline-secondary" onClick={() => sendControlwordReq(0x0F)}>
             Enable
           </Button>
-          <Button variant="outline-secondary" onClick={() => sendCanReq(0x600+nodeId, 8, [0x2B, 0x40, 0x60, 0x0, 0x06, 0x0, 0x0, 0x0])}>
+          <Button variant="outline-secondary" onClick={() => sendControlwordReq(0x06)}>
             Disable
           </Button>
-          <Button variant="outline-secondary" onClick={() => sendCanReq(0x600+nodeId, 8, [0x2B, 0x40, 0x60, 0x0, 0x86, 0x0, 0x0, 0x0])}>
+          <Button variant="outline-secondary" onClick={() => sendControlwordReq(0x86)}>
             Clear Error
           </Button>
         </Card.Text>
