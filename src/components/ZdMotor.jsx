@@ -4,7 +4,7 @@ import ROSLIB from 'roslib';
 import { Button, Form } from 'react-bootstrap';
 import Card from 'react-bootstrap/Card';
 
-const ZdMotor = ({ ros, nodeId}) => {
+const ZdMotor = ({ ros, namespace, maxRpm, nodeId}) => {
   const [CanReqPublisher, setCanReqPublisher] = useState(null);
 
   useEffect(() => {
@@ -75,8 +75,8 @@ const ZdMotor = ({ ros, nodeId}) => {
       <Card.Body>
         <Card.Text>
           <Form.Group className="mb-2" controlId="slider">
-            <Form.Label>Velocity Control</Form.Label>
-            <Form.Control type="range" min="0" max="3000" step="10" value={velSliderValue} onChange={handleVelSliderChange} />
+            <Form.Label>Velocity: </Form.Label>
+            <Form.Control type="range" min="0" max={maxRpm} step={maxRpm/100} value={velSliderValue} onChange={handleVelSliderChange} />
           </Form.Group>
           {/* <Button variant="outline-secondary" onClick={() => sendCanReq(0x700+nodeId, 8, [0x2B, 0x17, 0x10, 0x0, 0xE8, 0x03, 0x0, 0x0])}>
             Heartbeat
@@ -87,8 +87,11 @@ const ZdMotor = ({ ros, nodeId}) => {
           <Button variant="outline-secondary" onClick={() => sendCanReq(0x700+nodeId, 8, [0x06, 0x20, 0x00, 0x0, 0x02, 0, 0, 0])}>
             Backward
           </Button>
-          <Button variant="outline-secondary" onClick={() => sendCanReq(0x700+nodeId, 8, [0x06, 0x20, 0x00, 0x0, 0x05, 0, 0, 0])}>
+          <Button variant="outline-secondary" onClick={() => sendCanReq(0x700+nodeId, 8, [0x06, 0x20, 0x00, 0x0, 0x05, 0, 0 , 0])}>
             Disable
+          </Button>
+          <Button variant="outline-secondary" onClick={() => sendCanReq(0x700+nodeId, 8, [0x06, 0x20, 0x00, 0x0, 0x07, 0, 0, 0])}>
+            Clear Error
           </Button>
         </Card.Text>
       </Card.Body>

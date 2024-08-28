@@ -14,24 +14,28 @@ function App() {
 
   return (
     <>
-      <Rosconnection rosUrl="ws://127.0.0.1:9090" rosDomainId="1" setRos={setRos} />
-      <h3>Connection: <span id="status">N/A</span></h3>
+      <Rosconnection rosUrl="ws://192.168.50.100:9090" rosDomainId="1" setRos={setRos} />
+      <div>
+        <h4>ROS bridge: <input type="text" value="127.0.0.1" /> </h4>
+      </div>
+
+      <h4>Connection: <span id="status">N/A</span></h4>
       {ros &&
         <>
         <Row>
-          <KincoMotor ros={ros} namespace={"rotation"} nodeId={1} />
+          <KincoMotor ros={ros} namespace={"expansion"} maxRpm={6000} nodeId={1} />
+        </Row>
+        
+        <Row>
+          <KincoMotor ros={ros} namespace={"push_pull"} maxRpm={15000} nodeId={2} />
         </Row>
 
         <Row>
-          <KincoMotor ros={ros} namespace={"expansion"} nodeId={2} />
+          <KincoMotor ros={ros} namespace={"rotation"} maxRpm={100} nodeId={3} />
         </Row>
 
         <Row>
-          <KincoMotor ros={ros} namespace={"push_pull"} nodeId={3} />
-        </Row>
-
-        <Row>
-          <ZdMotor ros={ros} namespace={"rolling"} nodeId={4} />
+          <ZdMotor ros={ros} namespace={"rolling"} maxRpm={300} nodeId={4} />
         </Row>
         </>
       }

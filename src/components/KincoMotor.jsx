@@ -4,8 +4,9 @@ import ROSLIB from 'roslib';
 import { Button, Form } from 'react-bootstrap';
 import Card from 'react-bootstrap/Card';
 
-const KincoMotor = ({ ros, namespace, nodeId}) => {
+const KincoMotor = ({ ros, namespace, maxRpm, nodeId}) => {
   const [CanReqPublisher, setCanReqPublisher] = useState(null);
+  const [RotateDirReqPublisher, setRotateDirReqPublisher] = useState(null);
   const [ModeReqPublisher, setModeReqPublisher] = useState(null);
   const [SpeedReqPublisher, setSpeedReqPublisher] = useState(null);
   const [ControlwordReqPublisher, setControlwordReqPublisher] = useState(null);
@@ -26,6 +27,25 @@ const KincoMotor = ({ ros, namespace, nodeId}) => {
     return () => {
       canReq.unadvertise();
       setCanReqPublisher(null);
+    };
+  }, [ros]);
+
+  useEffect(() => {
+    if (!ros) {
+      return;
+    }
+
+    const ratateDirReq = new ROSLIB.Topic({
+      ros: ros,
+      name: namespace + '/rotate_dir_req',
+      messageType: 'std_msgs/msg/UInt8',
+    });
+
+    setRotateDirReqPublisher(ratateDirReq);
+
+    return () => {
+      ratateDirReq.unadvertise();
+      setRotateDirReqPublisher(null);
     };
   }, [ros]);
 
@@ -86,6 +106,14 @@ const KincoMotor = ({ ros, namespace, nodeId}) => {
     };
   }, [ros]);
 
+  const sendRotateDirReq = (dir) => {
+    const msg = new ROSLIB.Message({
+      data: dir
+    });
+
+    RotateDirReqPublisher.publish(msg);
+  };
+
   const sendModeReq = (mode) => {
     const msg = new ROSLIB.Message({
       data: mode
@@ -143,6 +171,7 @@ const KincoMotor = ({ ros, namespace, nodeId}) => {
 
   const handleVelSliderChange = (event) => {
     setVelSliderValue(event.target.value);
+    console.log(parseInt(event.target.value))
     sendSpeedReq(parseInt(event.target.value));
   };
 
@@ -159,24 +188,27 @@ const KincoMotor = ({ ros, namespace, nodeId}) => {
       <Card.Body>
         <Card.Text>
           <Form.Group className="mb-2" controlId="slider">
-            <Form.Label>Velocity Control</Form.Label>
-            <Form.Control type="range" min="-1" max="3000" step="10" value={velSliderValue} onChange={handleVelSliderChange} />
+            <Form.Label>Velocity: </Form.Label>
+            <Form.Control type="range" min="-1" max={maxRpm} step={maxRpm/100} value={velSliderValue} onChange={handleVelSliderChange} />
           </Form.Group>
           {/* <Button variant="outline-secondary" onClick={() => sendCanReq(0x600+nodeId, 8, [0x2B, 0x17, 0x10, 0x0, 0xE8, 0x03, 0x0, 0x0])}>
             Heartbeat
           </Button> */}
-          <Button variant="outline-secondary" onClick={() => sendCanReq(0x0, 2, [0x81, nodeId, 0, 0, 0, 0, 0, 0])}>
+          <Button variant="outline-secondary" onClick={() => sendCanReq(0x0, 2, [0x81, nodeId])}>
             Reset
           </Button>
-          <Button variant="outline-secondary" onClick={() => sendCanReq(0x0, 8, [0x01, nodeId, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0])}>
+          <Button variant="outline-secondary" onClick={() => sendCanReq(0x0, 2, [0x01, nodeId])}>
             Operational Mode
           </Button>
           <Button variant="outline-secondary" onClick={() => sendModeReq(3)}>
             Set Velocity Mode
           </Button>
-          {/* <Button variant="outline-secondary" onClick={() => handleRpmClick()}>
-            Set RPM
-          </Button> */}
+          <Button variant="outline-secondary" onClick={() => sendRotateDirReq(1)}>
+            Forward
+          </Button>
+          <Button variant="outline-secondary" onClick={() => sendRotateDirReq(0)}>
+            Backward
+          </Button>
           <Button variant="outline-secondary" onClick={() => sendControlwordReq(0x0F)}>
             Enable
           </Button>
