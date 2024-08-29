@@ -11,6 +11,16 @@ const KincoMotor = ({ ros, namespace, maxRpm, nodeId}) => {
   const [SpeedReqPublisher, setSpeedReqPublisher] = useState(null);
   const [ControlwordReqPublisher, setControlwordReqPublisher] = useState(null);
 
+  const [motorStateData, setMotorStateData] = useState({            
+    heartbeatTimestamp: 0,
+    statusword: 0,
+    actualPosition: 0,
+    actualSpeed: 0,
+    actualCurrent: 0,
+    operationMode: 0,
+    controlword: 0}
+  );
+
   useEffect(() => {
     if (!ros) {
       return;
@@ -57,7 +67,7 @@ const KincoMotor = ({ ros, namespace, maxRpm, nodeId}) => {
     const modeReq = new ROSLIB.Topic({
       ros: ros,
       name: namespace + '/mode_req',
-      messageType: 'std_msgs/msg/UInt16',
+      messageType: 'std_msgs/msg/Int8',
     });
 
     setModeReqPublisher(modeReq);
@@ -106,6 +116,34 @@ const KincoMotor = ({ ros, namespace, maxRpm, nodeId}) => {
     };
   }, [ros]);
 
+  useEffect(() => {
+    if (!ros) {
+        return;
+      }
+      
+    var motorStateTopic = new ROSLIB.Topic({
+        ros: ros,
+        name: namespace + '/motor_state',
+        messageType: 'kinco_interfaces/msg/KincoState'
+    });
+
+    motorStateTopic.subscribe((message) => {
+        setMotorStateData(() => {
+          const newData = {
+            heartbeatTimestamp: message.heartbeat_timestamp,
+            statusword: message.statusword,
+            actualPosition: message.actual_position,
+            actualSpeed: message.actual_speed,
+            actualCurrent: message.actual_current,
+            operationMode: message.operation_mode,
+            controlword: message.controlword,
+          };
+          return newData;
+        });
+    });
+  
+  });
+  
   const sendRotateDirReq = (dir) => {
     const msg = new ROSLIB.Message({
       data: dir
@@ -175,50 +213,55 @@ const KincoMotor = ({ ros, namespace, maxRpm, nodeId}) => {
     sendSpeedReq(parseInt(event.target.value));
   };
 
-  const handleRpmChange = () => {
-    const arr_1 = [0x23, 0xFF, 0x60, 0x0];
-    const arr_2 = convertRpm2Dec(velSliderValue);
-    console.log(velSliderValue);
-    sendCanReq(0x600+nodeId, 8, [...arr_1, ...arr_2]);
-  };
-
   return (
     <>
     <Card className="mb-4" style={{ width: '48rem' }}>
       <Card.Body>
         <Card.Text>
+          <p>
+            Heartbeat: {motorStateData.heartbeatTimestamp},  
+            Statusword: 0x{motorStateData.statusword.toString(16)},
+            Actual Position: {motorStateData.actualPosition},
+            Actual Speed: {motorStateData.actualSpeed.toFixed(0)},
+            Actual current: {motorStateData.actualCurrent.toFixed(2)},
+            Operation Mode: 0x{motorStateData.operationMode.toString(16)},
+            Controlword: 0x{motorStateData.controlword.toString(16)}
+          </p>
+        </Card.Text>
+        <Card.Text>
           <Form.Group className="mb-2" controlId="slider">
             <Form.Label>Velocity: </Form.Label>
             <Form.Control type="range" min="-1" max={maxRpm} step={maxRpm/100} value={velSliderValue} onChange={handleVelSliderChange} />
           </Form.Group>
+        </Card.Text>
           {/* <Button variant="outline-secondary" onClick={() => sendCanReq(0x600+nodeId, 8, [0x2B, 0x17, 0x10, 0x0, 0xE8, 0x03, 0x0, 0x0])}>
             Heartbeat
           </Button> */}
-          <Button variant="outline-secondary" onClick={() => sendCanReq(0x0, 2, [0x81, nodeId])}>
-            Reset
-          </Button>
-          <Button variant="outline-secondary" onClick={() => sendCanReq(0x0, 2, [0x01, nodeId])}>
-            Operational Mode
-          </Button>
-          <Button variant="outline-secondary" onClick={() => sendModeReq(3)}>
-            Set Velocity Mode
-          </Button>
-          <Button variant="outline-secondary" onClick={() => sendRotateDirReq(1)}>
-            Forward
-          </Button>
-          <Button variant="outline-secondary" onClick={() => sendRotateDirReq(0)}>
-            Backward
-          </Button>
-          <Button variant="outline-secondary" onClick={() => sendControlwordReq(0x0F)}>
-            Enable
-          </Button>
-          <Button variant="outline-secondary" onClick={() => sendControlwordReq(0x06)}>
-            Disable
-          </Button>
-          <Button variant="outline-secondary" onClick={() => sendControlwordReq(0x86)}>
-            Clear Error
-          </Button>
-        </Card.Text>
+        <Button variant="outline-secondary" onClick={() => sendCanReq(0x0, 2, [0x81, nodeId])}>
+          Reset
+        </Button>
+        <Button variant="outline-secondary" onClick={() => sendCanReq(0x0, 2, [0x01, nodeId])}>
+          Operational Mode
+        </Button>
+        <Button variant="outline-secondary" onClick={() => sendModeReq(-3)}>
+          Set Velocity Mode
+        </Button>
+        <Button variant="outline-secondary" onClick={() => sendRotateDirReq(1)}>
+          Forward
+        </Button>
+        <Button variant="outline-secondary" onClick={() => sendRotateDirReq(0)}>
+          Backward
+        </Button>
+        <Button variant="outline-secondary" onClick={() => sendControlwordReq(0x0F)}>
+          Enable
+        </Button>
+        <Button variant="outline-secondary" onClick={() => sendControlwordReq(0x06)}>
+          Disable
+        </Button>
+        <Button variant="outline-secondary" onClick={() => sendControlwordReq(0x86)}>
+          Clear Error
+        </Button>
+        
       </Card.Body>
     </Card>
     </>
