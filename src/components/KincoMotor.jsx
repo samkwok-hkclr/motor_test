@@ -4,11 +4,12 @@ import ROSLIB from 'roslib';
 import { Button, Form } from 'react-bootstrap';
 import Card from 'react-bootstrap/Card';
 
-const KincoMotor = ({ ros, namespace, maxRpm, nodeId}) => {
+const KincoMotor = ({ ros, namespace, maxRpm, nodeId, PNames, Points}) => {
   const [CanReqPublisher, setCanReqPublisher] = useState(null);
   const [RotateDirReqPublisher, setRotateDirReqPublisher] = useState(null);
   const [ModeReqPublisher, setModeReqPublisher] = useState(null);
   const [SpeedReqPublisher, setSpeedReqPublisher] = useState(null);
+  const [TargetPosReqPublisher, setTargetPosReqPublisher] = useState(null);
   const [ControlwordReqPublisher, setControlwordReqPublisher] = useState(null);
 
   const [motorStateData, setMotorStateData] = useState({            
@@ -118,6 +119,25 @@ const KincoMotor = ({ ros, namespace, maxRpm, nodeId}) => {
 
   useEffect(() => {
     if (!ros) {
+      return;
+    }
+      
+    const targetPosReq = new ROSLIB.Topic({
+      ros: ros,
+      name: namespace + '/target_pos_req',
+      messageType: 'std_msgs/msg/Int32',
+    });
+
+    setTargetPosReqPublisher(targetPosReq);
+
+    return () => {
+      targetPosReq.unadvertise();
+      setTargetPosReqPublisher(null);
+    };
+  }, [ros]);
+
+  useEffect(() => {
+    if (!ros) {
         return;
       }
       
@@ -166,6 +186,14 @@ const KincoMotor = ({ ros, namespace, maxRpm, nodeId}) => {
     });
 
     SpeedReqPublisher.publish(msg);
+  };
+
+  const sendTargetPosReq = (targetPos) => {
+    const msg = new ROSLIB.Message({
+      data: targetPos
+    });
+
+    TargetPosReqPublisher.publish(msg);
   };
 
   const sendControlwordReq = (controlword) => {
@@ -219,15 +247,30 @@ const KincoMotor = ({ ros, namespace, maxRpm, nodeId}) => {
       <Card.Body>
         <Card.Text>
           <p>
-            Heartbeat: {motorStateData.heartbeatTimestamp},  
-            Statusword: 0x{motorStateData.statusword.toString(16)},
-            Actual Position: {motorStateData.actualPosition},
-            Actual Speed: {motorStateData.actualSpeed.toFixed(0)},
-            Actual current: {motorStateData.actualCurrent.toFixed(2)},
-            Operation Mode: 0x{motorStateData.operationMode.toString(16)},
-            Controlword: 0x{motorStateData.controlword.toString(16)}
+            <div>
+              Heartbeat: {motorStateData.heartbeatTimestamp}
+            </div>
+            <div>
+              Statusword: 0x{motorStateData.statusword.toString(16)}
+            </div>
+            <div>
+              Actual Position: 0x{motorStateData.actualPosition.toString(16)}
+            </div>
+            <div>
+              Actual Speed: {motorStateData.actualSpeed.toFixed(0)}
+            </div>
+            <div>
+              Actual current: {motorStateData.actualCurrent.toFixed(2)},
+            </div>
+            <div>
+              Operation Mode: 0x{motorStateData.operationMode.toString(16)},
+            </div>
+            <div>
+              Controlword: 0x{motorStateData.controlword.toString(16)}
+            </div>
           </p>
         </Card.Text>
+        
         <Card.Text>
           <Form.Group className="mb-2" controlId="slider">
             <Form.Label>Velocity: </Form.Label>
@@ -237,31 +280,53 @@ const KincoMotor = ({ ros, namespace, maxRpm, nodeId}) => {
           {/* <Button variant="outline-secondary" onClick={() => sendCanReq(0x600+nodeId, 8, [0x2B, 0x17, 0x10, 0x0, 0xE8, 0x03, 0x0, 0x0])}>
             Heartbeat
           </Button> */}
-        <Button variant="outline-secondary" onClick={() => sendCanReq(0x0, 2, [0x81, nodeId])}>
-          Reset
-        </Button>
-        <Button variant="outline-secondary" onClick={() => sendCanReq(0x0, 2, [0x01, nodeId])}>
-          Operational Mode
-        </Button>
-        <Button variant="outline-secondary" onClick={() => sendModeReq(-3)}>
-          Set Velocity Mode
-        </Button>
-        <Button variant="outline-secondary" onClick={() => sendRotateDirReq(1)}>
-          Forward
-        </Button>
-        <Button variant="outline-secondary" onClick={() => sendRotateDirReq(0)}>
-          Backward
-        </Button>
-        <Button variant="outline-secondary" onClick={() => sendControlwordReq(0x0F)}>
-          Enable
-        </Button>
-        <Button variant="outline-secondary" onClick={() => sendControlwordReq(0x06)}>
-          Disable
-        </Button>
-        <Button variant="outline-secondary" onClick={() => sendControlwordReq(0x86)}>
-          Clear Error
-        </Button>
-        
+        <div>
+          <Button variant="outline-secondary" onClick={() => sendCanReq(0x0, 2, [0x81, nodeId])}>
+            Reset
+          </Button>
+          <Button variant="outline-secondary" onClick={() => sendCanReq(0x0, 2, [0x01, nodeId])}>
+            Operational Mode
+          </Button>
+          <Button variant="outline-secondary" onClick={() => sendControlwordReq(0x86)}>
+            Clear Error
+          </Button>
+          <Button variant="outline-secondary" onClick={() => sendControlwordReq(0x6)}>
+            Stop
+          </Button>
+        </div>
+
+        <div>
+          <Button variant="outline-secondary" onClick={() => sendModeReq(-3)}>
+            Velocity Mode
+          </Button>
+          <Button variant="outline-secondary" onClick={() => sendRotateDirReq(1)}>
+            Forward
+          </Button>
+          <Button variant="outline-secondary" onClick={() => sendRotateDirReq(0)}>
+            Backward
+          </Button>
+          <Button variant="outline-secondary" onClick={() => sendControlwordReq(0x0f)}>
+            Start
+          </Button>
+        </div>
+
+        <div>
+          <Button variant="outline-secondary" onClick={() => sendModeReq(1)}>
+            Position Mode
+          </Button>
+          <Button variant="outline-secondary" onClick={() => sendControlwordReq(0x103f)}>
+            103f
+          </Button>
+          {Points.map((point, index) => (
+            <Button
+              key={index}
+              variant="outline-secondary"
+              onClick={() => sendTargetPosReq(point)}>
+              {PNames[index]}
+            </Button>
+          ))}
+        </div>
+
       </Card.Body>
     </Card>
     </>
